@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+.venv/
+
+# Database file - Your personal data should not be uploaded!
+*.db
+*.sqlite3
+
+# IDE settings
+.vscode/
