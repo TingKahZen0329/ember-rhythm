@@ -1,11 +1,20 @@
 import tkinter as tk
-from app import EmberRhythmApp # 從 app.py 匯入主應用程式
-import database # 從 database.py 匯入資料庫函式
+# 匯入 ttkbootstrap 並給它 ttk 的小名，這樣我們就可以無縫替換
+import ttkbootstrap as ttk 
+from app import EmberRhythmApp
+import database
+import audio_manager
+import audio_player
 
 # --- 程式的進入點 ---
 if __name__ == "__main__":
-    database.initialize() # 確保資料庫已準備就緒
+    database.initialize()
+    audio_manager.setup_media_folder()
+    audio_player.initialize_player()
     
-    root = tk.Tk()
+    # 使用 ttkbootstrap 的 Window，並選擇一個主題
+    # 其他可選主題: "litera", "flatly", "journal", "darkly", "superhero", "cyborg"
+    root = ttk.Window(themename="superhero") 
+    
     app = EmberRhythmApp(root)
     root.mainloop()
