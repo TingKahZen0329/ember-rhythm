@@ -13,18 +13,19 @@ class EditWordApp:
         self.word_data = word_data
         self.refresh_callback = refresh_callback
         
-        self.original_word_audio = self.word_data['word_audio_path'] or ''
-        self.original_example_audio = self.word_data['example_audio_path'] or ''
+        self.audio_paths = {
+            'word': self.word_data['word_audio_path'] or '',
+            'example': self.word_data['example_audio_path'] or ''
+        }
+        self.original_audio_paths = self.audio_paths.copy()
 
         self.setup_ui()
         self.toggle_mode(is_edit_mode=False)
 
     def setup_ui(self):
-        # --- 顯示模式框架 ---
         self.display_frame = ttk.Frame(self.window, padding=20)
         
         ttk.Label(self.display_frame, text=self.word_data['word'], font=("Arial", 36, "bold"), bootstyle="primary").pack(pady=10)
-        # 顯示卡組名稱
         ttk.Label(self.display_frame, text=f"卡組: {self.word_data['deck_name']}", font=("Arial", 14), bootstyle="secondary").pack()
         
         ttk.Label(self.display_frame, text=self.word_data['meaning'], font=("Arial", 20), wraplength=500).pack(pady=20)
@@ -32,12 +33,11 @@ class EditWordApp:
 
         display_audio_frame = ttk.Frame(self.display_frame)
         display_audio_frame.pack(pady=20)
-        if self.original_word_audio:
+        if self.original_audio_paths['word']:
             ttk.Button(display_audio_frame, text="🔊 單字發音", command=self.play_word_audio, bootstyle="light").pack(side="left", padx=10)
-        if self.original_example_audio:
+        if self.original_audio_paths['example']:
             ttk.Button(display_audio_frame, text="🔊 例句發音", command=self.play_example_audio, bootstyle="light").pack(side="left", padx=10)
 
-        # --- 編輯模式框架 ---
         self.edit_frame = ttk.Frame(self.window, padding=20)
         
         label_font = ("Arial", 14)
@@ -53,7 +53,6 @@ class EditWordApp:
         self.meaning_text.insert("1.0", self.word_data['meaning'])
         self.meaning_text.grid(row=1, column=1, columnspan=3, pady=8)
 
-        # --- 卡組選擇 ---
         ttk.Label(self.edit_frame, text="卡組 (Deck):", font=label_font).grid(row=2, column=0, sticky="w", pady=8)
         decks = database.get_all_decks()
         self.deck_names = [deck['name'] for deck in decks]
@@ -67,22 +66,26 @@ class EditWordApp:
         self.example_text.insert("1.0", self.word_data['example_sentence'])
         self.example_text.grid(row=3, column=1, columnspan=3, pady=8)
 
-        # --- 聲音檔案介面 ---
         ttk.Label(self.edit_frame, text="單字聲音:", font=label_font).grid(row=4, column=0, sticky="w", pady=10)
         self.word_audio_entry = ttk.Entry(self.edit_frame, font=("Arial", 10), width=30, state='readonly')
-        self.word_audio_entry.insert(0, self.original_word_audio)
+        self.word_audio_entry.insert(0, self.audio_paths['word'])
         self.word_audio_entry.grid(row=4, column=1, pady=10)
-        ttk.Button(self.edit_frame, text="瀏覽...", command=lambda: self.select_audio_file(self.word_audio_entry), bootstyle="info-outline").grid(row=4, column=2, sticky="w")
-        ttk.Button(self.edit_frame, text="清除", command=lambda: self.clear_audio_file(self.word_audio_entry), bootstyle="danger-outline").grid(row=4, column=3, sticky="w", padx=5)
+        ttk.Button(self.edit_frame, text="瀏覽...", command=lambda: self.select_audio_file(self.word_audio_entry, 'word'), bootstyle="info-outline").grid(row=4, column=2, sticky="w")
+        ttk.Button(self.edit_frame, text="清除", command=lambda: self.clear_audio_file(self.word_audio_entry, 'word'), bootstyle="danger-outline").grid(row=4, column=3, sticky="w", padx=5)
 
         ttk.Label(self.edit_frame, text="例句聲音:", font=label_font).grid(row=5, column=0, sticky="w", pady=5)
         self.example_audio_entry = ttk.Entry(self.edit_frame, font=("Arial", 10), width=30, state='readonly')
-        self.example_audio_entry.insert(0, self.original_example_audio)
+        self.example_audio_entry.insert(0, self.audio_paths['example'])
         self.example_audio_entry.grid(row=5, column=1, pady=5)
-        ttk.Button(self.edit_frame, text="瀏覽...", command=lambda: self.select_audio_file(self.example_audio_entry), bootstyle="info-outline").grid(row=5, column=2, sticky="w")
-        ttk.Button(self.edit_frame, text="清除", command=lambda: self.clear_audio_file(self.example_audio_entry), bootstyle="danger-outline").grid(row=5, column=3, sticky="w", padx=5)
+        ttk.Button(self.edit_frame, text="瀏覽...", command=lambda: self.select_audio_file(self.example_audio_entry, 'example'), bootstyle="info-outline").grid(row=5, column=2, sticky="w")
+        ttk.Button(self.edit_frame, text="清除", command=lambda: self.clear_audio_file(self.example_audio_entry, 'example'), bootstyle="danger-outline").grid(row=5, column=3, sticky="w", padx=5)
 
-        # --- 底部按鈕區 ---
+        ttk.Label(self.edit_frame, text="熟練度 (SRS):", font=label_font).grid(row=6, column=0, sticky="w", pady=8)
+        srs_levels = list(range(7))
+        self.srs_variable = tk.IntVar(value=self.word_data['srs_level'])
+        srs_combobox = ttk.Combobox(self.edit_frame, textvariable=self.srs_variable, values=srs_levels, state="readonly", width=5, font=entry_font)
+        srs_combobox.grid(row=6, column=1, sticky="w", pady=8)
+
         self.button_frame = ttk.Frame(self.window, padding=(0, 10, 20, 20))
         self.button_frame.pack(side="bottom", fill="x")
 
@@ -106,50 +109,65 @@ class EditWordApp:
             self.cancel_button.pack_forget()
             self.update_button.pack_forget()
             self.delete_button.pack_forget()
-            self.edit_button.pack(expand=True)
+            self.edit_button.pack(expand=True, fill="x", padx=20, ipady=5)
             self.window.title(f"檢視單字: {self.word_data['word']}")
 
-    def select_audio_file(self, entry_widget):
+    def select_audio_file(self, entry_widget, audio_type):
         source_path = filedialog.askopenfilename(title="選擇聲音檔案", filetypes=(("聲音檔案", "*.mp3 *.wav"), ("所有檔案", "*.*")))
-        if not source_path: return
-        word_text = self.word_entry.get()
-        if not word_text:
-            messagebox.showwarning("警告", "必須有單字才能關聯聲音檔案。", parent=self.window)
-            return
-        new_relative_path = audio_manager.copy_audio_file(source_path, word_text)
-        if new_relative_path:
+        if source_path:
+            self.audio_paths[audio_type] = source_path
             entry_widget.config(state='normal')
             entry_widget.delete(0, tk.END)
-            entry_widget.insert(0, new_relative_path)
+            entry_widget.insert(0, source_path)
             entry_widget.config(state='readonly')
 
-    def clear_audio_file(self, entry_widget):
+    def clear_audio_file(self, entry_widget, audio_type):
+        self.audio_paths[audio_type] = ""
         entry_widget.config(state='normal')
         entry_widget.delete(0, tk.END)
         entry_widget.config(state='readonly')
 
     def play_word_audio(self):
-        audio_player.play_audio(self.original_word_audio)
+        audio_player.play_audio(self.original_audio_paths['word'])
 
     def play_example_audio(self):
-        audio_player.play_audio(self.original_example_audio)
+        audio_player.play_audio(self.original_audio_paths['example'])
     
     def update_action(self):
-        new_word_audio = self.word_audio_entry.get()
-        new_example_audio = self.example_audio_entry.get()
-        if self.original_word_audio and self.original_word_audio != new_word_audio:
-            audio_manager.delete_audio_file(self.original_word_audio)
-        if self.original_example_audio and self.original_example_audio != new_example_audio:
-            audio_manager.delete_audio_file(self.original_example_audio)
-        
+        word_text = self.word_entry.get().strip()
+        if not word_text:
+            messagebox.showerror("錯誤", "單字不能為空！", parent=self.window)
+            return
+
+        if word_text != self.word_data['word']:
+            existing_word = database.find_word_by_name(word_text)
+            if existing_word:
+                messagebox.showerror("更新失敗", 
+                                     f"單字 '{word_text}' 已經存在於卡組 '{existing_word['deck_name']}' 中。\n請使用不同的名稱。",
+                                     parent=self.window)
+                return
+
+        final_word_audio_path = self.original_audio_paths['word']
+        if self.audio_paths['word'] != self.original_audio_paths['word']:
+            if self.original_audio_paths['word']:
+                audio_manager.delete_audio_file(self.original_audio_paths['word'])
+            final_word_audio_path = audio_manager.copy_audio_file(self.audio_paths['word'], word_text) if self.audio_paths['word'] else ""
+
+        final_example_audio_path = self.original_audio_paths['example']
+        if self.audio_paths['example'] != self.original_audio_paths['example']:
+            if self.original_audio_paths['example']:
+                audio_manager.delete_audio_file(self.original_audio_paths['example'])
+            final_example_audio_path = audio_manager.copy_audio_file(self.audio_paths['example'], word_text) if self.audio_paths['example'] else ""
+
         selected_deck_name = self.deck_variable.get()
         updated_data = {
-            'word': self.word_entry.get(),
+            'word': word_text,
             'meaning': self.meaning_text.get("1.0", tk.END).strip(),
             'deck_id': self.deck_map[selected_deck_name],
             'example': self.example_text.get("1.0", tk.END).strip(),
-            'word_audio': new_word_audio,
-            'example_audio': new_example_audio
+            'word_audio': final_word_audio_path,
+            'example_audio': final_example_audio_path,
+            'srs_level': self.srs_variable.get()
         }
         error = database.update_word(self.word_data['id'], updated_data)
         if error:
@@ -161,8 +179,8 @@ class EditWordApp:
 
     def delete_action(self):
         if messagebox.askyesno("確認刪除", f"您確定要刪除單字 '{self.word_data['word']}' 嗎？\n這將會一併刪除關聯的聲音檔案，且操作無法復原。", parent=self.window):
-            audio_manager.delete_audio_file(self.original_word_audio)
-            audio_manager.delete_audio_file(self.original_example_audio)
+            audio_manager.delete_audio_file(self.original_audio_paths['word'])
+            audio_manager.delete_audio_file(self.original_audio_paths['example'])
             error = database.delete_word(self.word_data['id'])
             if error:
                 messagebox.showerror("刪除失敗", error, parent=self.window)

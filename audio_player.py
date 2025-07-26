@@ -39,3 +39,17 @@ def stop_audio():
     if not mixer_initialized:
         return
     pygame.mixer.music.stop()
+
+def unload_current_audio():
+    """
+    ★★★ 關鍵修正 ★★★
+    明確卸載目前載入的音訊，以釋放檔案控制代碼。
+    這在執行檔案操作（如匯入/覆蓋）之前至關重要。
+    """
+    if not mixer_initialized:
+        return
+    try:
+        # Unload a file to free the resource.
+        pygame.mixer.music.unload()
+    except pygame.error as e:
+        print(f"卸載音訊時發生錯誤: {e}")

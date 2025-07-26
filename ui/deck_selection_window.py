@@ -21,7 +21,6 @@ class DeckSelectionApp:
         top_frame.pack(fill="x")
         ttk.Label(top_frame, text="請選擇要複習的卡組", font=("Arial", 18, "bold"), bootstyle="primary").pack()
 
-        # 使用 ScrolledFrame 來放置卡組按鈕
         self.scroll_frame = ScrolledFrame(self.window, autohide=True)
         self.scroll_frame.pack(expand=True, fill="both", padx=20, pady=10)
         
@@ -71,7 +70,6 @@ class DeckSelectionApp:
             messagebox.showinfo("提示", "沒有可管理的卡組。", parent=self.window)
             return
         
-        # 1. 讓使用者選擇要管理的卡組
         selected_deck_name = simpledialog.askstring("管理卡組", 
                                                     f"請輸入您想管理的卡組名稱:\n\n({', '.join(deck_names)})", 
                                                     parent=self.window)
@@ -79,15 +77,13 @@ class DeckSelectionApp:
         if selected_deck_name and selected_deck_name in deck_names:
             deck_to_manage = next(d for d in self.decks if d['name'] == selected_deck_name)
             
-            # 2. 讓使用者選擇要執行的操作
             action = simpledialog.askstring("選擇操作", 
                                             f"您想對卡組 '{selected_deck_name}' 做什麼？\n\n- 輸入新名稱來「重新命名」\n- 輸入大寫的 'DELETE' 來「刪除」", 
                                             parent=self.window)
             
-            if action: # 如果使用者輸入了內容 (不是 None)
+            if action:
                 action = action.strip()
                 if action.upper() == 'DELETE':
-                    # --- 刪除邏輯 ---
                     if messagebox.askyesno("確認刪除", 
                                            f"您確定要刪除卡組 '{selected_deck_name}' 嗎？\n\n注意：只有空的卡組才能被刪除。", 
                                            parent=self.window):
@@ -98,7 +94,6 @@ class DeckSelectionApp:
                             messagebox.showinfo("成功", f"卡組 '{selected_deck_name}' 已被刪除。", parent=self.window)
                             self.refresh_decks()
                 elif action:
-                    # --- 重新命名邏輯 ---
                     new_name = action
                     error = database.update_deck_name(deck_to_manage['id'], new_name)
                     if error:
@@ -112,8 +107,8 @@ class DeckSelectionApp:
         
         def on_review_close():
             """當複習視窗關閉時，執行此函式。"""
-            self.refresh_decks() # 1. 刷新卡組數量
-            self.window.deiconify() # 2. 重新顯示本視窗
+            self.refresh_decks()
+            self.window.deiconify()
 
         flashcard_window.create(self.parent, deck_data, on_review_close)
 
